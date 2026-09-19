@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Martin Schröder – Visitenkarte</title>
-<meta name="description" content="Digitale Visitenkarte von Martin Schröder">
+<meta name="description" content="Digitale Visitenkarte von Martin Schröder, Maschinenbauingenieur Schienenfahrzeuge">
 <style>
   :root {
     --bg: #e6edf1;
@@ -46,6 +46,8 @@
     overflow: hidden;
     border: 1px solid var(--line);
   }
+
+  /* Kopf */
   .head {
     display: flex;
     align-items: center;
@@ -68,7 +70,9 @@
   }
   .avatar img { width: 100%; height: 100%; object-fit: cover; }
   h1 { margin: 0; font-size: 1.5rem; line-height: 1.2; }
-  .role { margin: 2px 0 0; color: var(--muted); font-size: .95rem; }
+  .role { margin: 2px 0 0; color: var(--accent); font-size: 1rem; font-weight: 600; }
+
+  /* Zeilen (Profil und Kontakt) */
   .list { list-style: none; margin: 0; padding: 0 12px; }
   .list li + li { border-top: 1px solid var(--line); }
   .list a, .list div {
@@ -82,6 +86,21 @@
   .list a:hover { background: var(--bg); }
   .label { font-size: .8rem; color: var(--muted); }
   .value { font-size: 1.02rem; word-break: break-word; }
+
+  /* Abschnitte mit Trennlinie */
+  .section { margin: 8px 12px 0; padding-top: 8px; border-top: 1px solid var(--line); }
+  .section > .list { padding: 0; }
+  .skills { padding: 12px 16px 16px; }
+  .chips { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips li {
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    font-size: .9rem;
+  }
+
+  /* Buttons */
   .actions { padding: 20px 28px 8px; display: grid; gap: 10px; }
   button {
     font: inherit;
@@ -94,6 +113,8 @@
   .primary { background: var(--accent); color: var(--accent-ink); }
   .secondary { background: transparent; color: var(--accent); }
   button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* QR-Code */
   .qr {
     margin: 20px 28px 28px;
     padding: 20px;
@@ -123,7 +144,16 @@
     </div>
   </header>
 
-  <ul class="list" id="contacts"></ul>
+  <ul class="list" id="profile"></ul>
+
+  <section class="section skills" id="skills" hidden>
+    <span class="label">Disziplinen</span>
+    <ul class="chips" id="chips"></ul>
+  </section>
+
+  <section class="section">
+    <ul class="list" id="contacts"></ul>
+  </section>
 
   <div class="actions">
     <button class="primary" id="save" type="button">Kontakt speichern</button>
@@ -143,47 +173,85 @@
 const DATA = {
   vorname: "Martin",
   nachname: "Schröder",
-  titel: "Ingenieur Maschinenbau",
-  firma: "InterEngineer Systems GmbH",
+  beruf: "Maschinenbauingenieur",
+  fachgebiet: "Schienenfahrzeuge - Mechanische Konstruktion",
+  disziplinen: [
+    "Tragende Fahrzeugstruktur",
+    "Drehgestelle",
+    "Zulassung",
+    "Technische Berechnung",
+    "Festigkeit",
+    "Projektmanagement",
+    "Teamleitung"
+  ],
+  arbeitgeber: "InterEngineer Systems GmbH",
   telefon: "+49 151 23275457",
   email: "mdh.schroeder@gmx.de",
-  foto: "bild.jpg" // optional: Dateiname, z. B. "foto.jpg" (im selben Ordner)
+  website: "",   // optional
+  adresse: "",   // optional
+  foto: "bild.jpg" // optional: Dateiname im selben Ordner
 };
 /* ====================================== */
 
 const fullName = `${DATA.vorname} ${DATA.nachname}`.trim();
 document.title = `${fullName} – Visitenkarte`;
 document.getElementById("name").textContent = fullName;
-document.getElementById("role").textContent = [DATA.titel, DATA.firma].filter(Boolean).join(" bei ");
+document.getElementById("role").textContent = [DATA.beruf, DATA.arbeitgeber].filter(Boolean).join(" bei ");
 
+/* Foto oder Initialen */
 const avatar = document.getElementById("avatar");
 if (DATA.foto) {
   const img = document.createElement("img");
   img.src = DATA.foto;
   img.alt = fullName;
+  img.onerror = () => {
+    img.remove();
+    avatar.textContent = ((DATA.vorname[0] || "") + (DATA.nachname[0] || "")).toUpperCase();
+  };
   avatar.appendChild(img);
 } else {
   avatar.textContent = ((DATA.vorname[0] || "") + (DATA.nachname[0] || "")).toUpperCase();
 }
 
-const rows = [
+/* Zeilen aufbauen: [Label, Text, optionaler Link] */
+function addRows(ul, rows) {
+  rows.forEach(([label, value, href]) => {
+    if (!value) return;
+    const li = document.createElement("li");
+    const el = document.createElement(href ? "a" : "div");
+    if (href) {
+      el.href = href;
+      if (!href.startsWith("tel:") && !href.startsWith("mailto:")) { el.target = "_blank"; el.rel = "noopener"; }
+    }
+    el.innerHTML = '<span class="label"></span><span class="value"></span>';
+    el.children[0].textContent = label;
+    el.children[1].textContent = value;
+    li.appendChild(el);
+    ul.appendChild(li);
+  });
+}
+
+addRows(document.getElementById("profile"), [
+  ["Fachgebiet", DATA.fachgebiet]
+]);
+
+/* Disziplinen als Chips */
+if (DATA.disziplinen && DATA.disziplinen.length) {
+  const chips = document.getElementById("chips");
+  DATA.disziplinen.forEach(d => {
+    const li = document.createElement("li");
+    li.textContent = d;
+    chips.appendChild(li);
+  });
+  document.getElementById("skills").hidden = false;
+}
+
+addRows(document.getElementById("contacts"), [
   ["Telefon", DATA.telefon, DATA.telefon && "tel:" + DATA.telefon.replace(/[^+\d]/g, "")],
   ["E-Mail", DATA.email, DATA.email && "mailto:" + DATA.email],
   ["Website", DATA.website && DATA.website.replace(/^https?:\/\//, ""), DATA.website],
   ["Adresse", DATA.adresse, DATA.adresse && "https://www.openstreetmap.org/search?query=" + encodeURIComponent(DATA.adresse)]
-];
-const list = document.getElementById("contacts");
-rows.forEach(([label, value, href]) => {
-  if (!value) return;
-  const li = document.createElement("li");
-  const el = document.createElement(href ? "a" : "div");
-  if (href) { el.href = href; if (!href.startsWith("tel:") && !href.startsWith("mailto:")) { el.target = "_blank"; el.rel = "noopener"; } }
-  el.innerHTML = '<span class="label"></span><span class="value"></span>';
-  el.children[0].textContent = label;
-  el.children[1].textContent = value;
-  li.appendChild(el);
-  list.appendChild(li);
-});
+]);
 
 /* vCard erzeugen und herunterladen */
 function esc(s) { return String(s).replace(/([,;\\])/g, "\\$1").replace(/\n/g, "\\n"); }
@@ -194,12 +262,14 @@ function buildVCard() {
     `N:${esc(DATA.nachname)};${esc(DATA.vorname)};;;`,
     `FN:${esc(fullName)}`
   ];
-  if (DATA.firma) lines.push(`ORG:${esc(DATA.firma)}`);
-  if (DATA.titel) lines.push(`TITLE:${esc(DATA.titel)}`);
+  if (DATA.arbeitgeber) lines.push(`ORG:${esc(DATA.arbeitgeber)}`);
+  if (DATA.beruf) lines.push(`TITLE:${esc(DATA.beruf)}`);
   if (DATA.telefon) lines.push(`TEL;TYPE=CELL:${DATA.telefon}`);
   if (DATA.email) lines.push(`EMAIL;TYPE=INTERNET:${DATA.email}`);
   if (DATA.website) lines.push(`URL:${DATA.website}`);
   if (DATA.adresse) lines.push(`ADR;TYPE=WORK:;;${esc(DATA.adresse)};;;;`);
+  const notiz = [DATA.fachgebiet, (DATA.disziplinen || []).join(", ")].filter(Boolean).join(" | ");
+  if (notiz) lines.push(`NOTE:${esc(notiz)}`);
   lines.push("END:VCARD");
   return lines.join("\r\n");
 }
